@@ -37,6 +37,7 @@ Pour le dépôt GitHub suivant : {{REPO_URL}}
 5. Si le dépôt est vide, manque de code pertinent, ou ne permet pas une évaluation claire, attribuez une note de -1 et expliquez pourquoi dans l’analyse.`;
 
 export const GEMINI_JSON_RESPONSE_INSTRUCTION = `
+ajouter un explicaton de pour qoui avoir 7;
 Répondez UNIQUEMENT avec un objet JSON valide contenant les clés "analysis" (string) et "rating" (number). Exemple :
 {
   "analysis": "Ce projet utilise Symfony 6.x pour une application simple avec une API. Les formulaires incluent des jetons CSRF, mais le fichier .env est absent. Des services sont définis dans src/Service/, et des DTO sont utilisés pour l’API. Le code est lisible mais contient des fonctions redondantes.",

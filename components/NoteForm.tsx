@@ -210,7 +210,7 @@ const NoteForm: React.FC<NoteFormProps> = ({ onSave, currentNote, onClearCurrent
             {geminiProvidedRating !== null && geminiProvidedRating >=0 && (
                  <div className="mt-4 p-3 bg-slate-700 rounded-md">
                     <h4 className="text-md font-semibold text-sky-400 mb-1">Note attribuée par Gemini :</h4>
-                    <p className="text-2xl font-bold text-green-400">{geminiProvidedRating}/10</p>
+                    <p className="text-2xl font-bold text-green-400">{geminiProvidedRating}/20</p>
                  </div>
             )}
             {geminiProvidedAnalysis && (
