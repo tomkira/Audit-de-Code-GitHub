@@ -1,6 +1,8 @@
+
 import React, { useState, useEffect, useCallback } from 'react';
 import { Note } from '../types';
 import { analyzeRepositoryWithGemini } from '../services/geminiService';
+import { DEFAULT_SYMFONY_ANALYSIS_PROMPT_TEMPLATE } from '../constants';
 import SparklesIcon from './icons/SparklesIcon';
 import LoadingSpinner from './LoadingSpinner';
 import Alert from './Alert';
@@ -16,6 +18,8 @@ const NoteForm: React.FC<NoteFormProps> = ({ onSave, currentNote, onClearCurrent
   const [userDescription, setUserDescription] = useState(''); // User's own notes
   const [geminiProvidedAnalysis, setGeminiProvidedAnalysis] = useState(''); // Analysis text from Gemini
   const [geminiProvidedRating, setGeminiProvidedRating] = useState<number | null>(null); // Rating from Gemini
+  const [customPromptTemplate, setCustomPromptTemplate] = useState(DEFAULT_SYMFONY_ANALYSIS_PROMPT_TEMPLATE);
+  const [showCustomPrompt, setShowCustomPrompt] = useState(false); // New state for visibility
 
   const [isLoadingGemini, setIsLoadingGemini] = useState(false);
   const [geminiError, setGeminiError] = useState<string | null>(null);
@@ -29,15 +33,19 @@ const NoteForm: React.FC<NoteFormProps> = ({ onSave, currentNote, onClearCurrent
     setGeminiError(null);
     setIsLoadingGemini(false);
     setIsGeminiAnalyzed(false);
+    setCustomPromptTemplate(DEFAULT_SYMFONY_ANALYSIS_PROMPT_TEMPLATE);
+    setShowCustomPrompt(false); // Reset visibility
   }, []);
 
   useEffect(() => {
     if (currentNote) {
       setRepoUrl(currentNote.repoUrl);
-      setUserDescription(currentNote.description); // User's notes
-      setGeminiProvidedAnalysis(currentNote.geminiAnalysis || ''); // Gemini's analysis
-      setGeminiProvidedRating(currentNote.rating); // Gemini's rating
+      setUserDescription(currentNote.description); 
+      setGeminiProvidedAnalysis(currentNote.geminiAnalysis || ''); 
+      setGeminiProvidedRating(currentNote.rating); 
       setIsGeminiAnalyzed(!!currentNote.geminiAnalysis || typeof currentNote.rating === 'number');
+      // setShowCustomPrompt is not reset here to preserve user's UI choice during an edit session
+      // customPromptTemplate is also not reset when editing
     } else {
       resetFormFields();
     }
@@ -49,15 +57,31 @@ const NoteForm: React.FC<NoteFormProps> = ({ onSave, currentNote, onClearCurrent
       setGeminiError('Veuillez fournir une URL de dépôt GitHub à analyser.');
       return;
     }
+
+    let effectivePromptTemplate = DEFAULT_SYMFONY_ANALYSIS_PROMPT_TEMPLATE;
+
+    if (showCustomPrompt) {
+      if (!customPromptTemplate.trim()) {
+        setGeminiError('Le template du prompt personnalisé ne peut pas être vide.');
+        return;
+      }
+      if (!customPromptTemplate.includes('{{REPO_URL}}')) {
+          setGeminiError('Le template du prompt personnalisé doit contenir le placeholder {{REPO_URL}}.');
+          return;
+      }
+      effectivePromptTemplate = customPromptTemplate;
+    }
+
     setIsLoadingGemini(true);
     setGeminiError(null);
-    // Reset previous Gemini results if re-analyzing
     setGeminiProvidedAnalysis('');
     setGeminiProvidedRating(null);
     setIsGeminiAnalyzed(false);
 
+    const finalPrompt = effectivePromptTemplate.replace(/{{REPO_URL}}/g, repoUrl);
+
     try {
-      const { analysis, rating } = await analyzeRepositoryWithGemini(repoUrl);
+      const { analysis, rating } = await analyzeRepositoryWithGemini(finalPrompt);
       setGeminiProvidedAnalysis(analysis);
       setGeminiProvidedRating(rating);
       setIsGeminiAnalyzed(true);
@@ -68,7 +92,7 @@ const NoteForm: React.FC<NoteFormProps> = ({ onSave, currentNote, onClearCurrent
       console.error(error);
       const errorMessage = error instanceof Error ? error.message : "Une erreur inconnue est survenue lors de l'analyse Gemini.";
       setGeminiError(errorMessage);
-      setGeminiProvidedRating(null); // Ensure rating is null on error
+      setGeminiProvidedRating(null); 
     } finally {
       setIsLoadingGemini(false);
     }
@@ -82,23 +106,23 @@ const NoteForm: React.FC<NoteFormProps> = ({ onSave, currentNote, onClearCurrent
     }
     if (geminiProvidedRating === null || geminiProvidedRating < 0 || geminiProvidedRating > 10) {
         alert("L'analyse Gemini doit d'abord fournir une note valide (0-10) pour enregistrer. Si Gemini n'a pas pu noter, vous ne pouvez pas enregistrer avec cette version.");
-        // Potentially allow saving without Gemini rating in future, but for now, it's tied.
         return;
     }
 
     const noteToSave: Note = {
       id: currentNote ? currentNote.id : Date.now().toString(),
       repoUrl,
-      rating: geminiProvidedRating, // Rating from Gemini
-      description: userDescription, // User's notes
-      geminiAnalysis: geminiProvidedAnalysis, // Analysis from Gemini
+      rating: geminiProvidedRating, 
+      description: userDescription, 
+      geminiAnalysis: geminiProvidedAnalysis, 
       createdAt: currentNote ? currentNote.createdAt : new Date().toISOString(),
     };
     onSave(noteToSave);
-    if (!currentNote) {
-        resetFormFields();
+    if (!currentNote) { 
+        resetFormFields(); 
+    } else {
+        onClearCurrentNote();
     }
-    onClearCurrentNote(); 
   };
   
   const canSave = repoUrl.trim() !== '' && 
@@ -117,34 +141,66 @@ const NoteForm: React.FC<NoteFormProps> = ({ onSave, currentNote, onClearCurrent
 
       <div>
         <label htmlFor="repoUrl" className="block text-sm font-medium text-slate-300 mb-1">Lien du Répertoire GitHub*</label>
-        <div className="flex space-x-2">
-            <input
-            type="url"
-            id="repoUrl"
-            value={repoUrl}
-            onChange={(e) => {
-                setRepoUrl(e.target.value);
-                // If URL changes, user might want to re-analyze. Clear old Gemini data.
-                setIsGeminiAnalyzed(false);
-                setGeminiProvidedAnalysis('');
-                setGeminiProvidedRating(null);
-                setGeminiError(null);
-            }}
-            placeholder="https://github.com/utilisateur/repo"
-            required
-            className="flex-grow p-3 bg-slate-700 border border-slate-600 rounded-md focus:ring-sky-500 focus:border-sky-500 text-slate-100 placeholder-slate-400"
-            />
-            <button
-                type="button"
-                onClick={handleGeminiRepoAnalysis}
-                disabled={isLoadingGemini || !repoUrl.trim()}
-                className="flex-shrink-0 flex items-center justify-center px-4 py-3 bg-purple-600 hover:bg-purple-700 text-white font-semibold rounded-md shadow-md focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-opacity-50 transition duration-150 ease-in-out disabled:opacity-50 disabled:cursor-not-allowed"
-                aria-label="Analyser le dépôt avec Gemini"
-            >
-                {isLoadingGemini ? <LoadingSpinner /> : <SparklesIcon className="mr-0 sm:mr-2" />}
-                <span className="hidden sm:inline">Analyser Dépôt</span>
-            </button>
+        <input
+          type="url"
+          id="repoUrl"
+          value={repoUrl}
+          onChange={(e) => {
+              setRepoUrl(e.target.value);
+              setIsGeminiAnalyzed(false);
+              setGeminiProvidedAnalysis('');
+              setGeminiProvidedRating(null);
+              setGeminiError(null);
+          }}
+          placeholder="https://github.com/utilisateur/repo"
+          required
+          className="w-full p-3 bg-slate-700 border border-slate-600 rounded-md focus:ring-sky-500 focus:border-sky-500 text-slate-100 placeholder-slate-400"
+        />
+      </div>
+
+      <div className="mt-4">
+        <button
+          type="button"
+          onClick={() => setShowCustomPrompt(!showCustomPrompt)}
+          className="text-sm font-medium text-sky-400 hover:text-sky-300 focus:outline-none mb-2 px-3 py-1.5 rounded-md hover:bg-slate-700 transition-colors duration-150"
+          aria-expanded={showCustomPrompt}
+          aria-controls="custom-prompt-section"
+        >
+          {showCustomPrompt ? 'Utiliser le Prompt par Défaut' : 'Personnaliser le Prompt d\'Analyse'}
+        </button>
+      </div>
+
+      {showCustomPrompt && (
+        <div id="custom-prompt-section" className="border border-slate-700 p-4 rounded-md bg-slate-700/30">
+          <label htmlFor="customPromptTemplate" className="block text-sm font-medium text-slate-300 mb-1">
+            Prompt Personnalisé pour Gemini (template) :
+          </label>
+          <textarea
+            id="customPromptTemplate"
+            value={customPromptTemplate}
+            onChange={(e) => setCustomPromptTemplate(e.target.value)}
+            rows={10}
+            className="w-full p-3 bg-slate-600 border border-slate-500 rounded-md focus:ring-sky-500 focus:border-sky-500 text-slate-100 placeholder-slate-400"
+            placeholder="Modifiez le template du prompt. Utilisez {{REPO_URL}} comme placeholder pour l'URL du dépôt."
+            aria-describedby="prompt-template-description"
+          />
+          <p id="prompt-template-description" className="mt-1 text-xs text-slate-400">
+            Le placeholder <code className="bg-slate-500 px-1 rounded text-xs">{'{{REPO_URL}}'}</code> sera remplacé par l'URL du dépôt.
+          </p>
         </div>
+      )}
+      
+      <div className="mt-4">
+        <button
+            type="button"
+            onClick={handleGeminiRepoAnalysis}
+            disabled={isLoadingGemini || !repoUrl.trim()}
+            className="w-full flex items-center justify-center px-4 py-3 bg-purple-600 hover:bg-purple-700 text-white font-semibold rounded-md shadow-md focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-opacity-50 transition duration-150 ease-in-out disabled:opacity-50 disabled:cursor-not-allowed"
+            aria-label="Analyser le dépôt avec Gemini"
+        >
+            {isLoadingGemini ? <LoadingSpinner /> : <SparklesIcon className="mr-2" />}
+            <span>Analyser Dépôt</span>
+        </button>
       </div>
       
       {isLoadingGemini && <div className="text-center py-4"><LoadingSpinner /> <p className="text-slate-400">Analyse Gemini en cours...</p></div>}
@@ -164,7 +220,7 @@ const NoteForm: React.FC<NoteFormProps> = ({ onSave, currentNote, onClearCurrent
                 </div>
             )}
             <div>
-                <label htmlFor="userDescription" className="block text-sm font-medium text-slate-300 mb-1">Vos notes complémentaires :</label>
+                <label htmlFor="userDescription" className="block text-sm font-medium text-slate-300 mb-1 mt-4">Vos notes complémentaires :</label>
                 <textarea
                 id="userDescription"
                 value={userDescription}
@@ -183,7 +239,10 @@ const NoteForm: React.FC<NoteFormProps> = ({ onSave, currentNote, onClearCurrent
             {currentNote && (
                  <button
                  type="button"
-                 onClick={() => { resetFormFields(); onClearCurrentNote(); }}
+                 onClick={() => { 
+                    resetFormFields(); 
+                    onClearCurrentNote(); 
+                 }}
                  className="w-full sm:w-auto px-6 py-3 bg-slate-600 hover:bg-slate-500 text-slate-100 font-semibold rounded-md shadow-md focus:outline-none focus:ring-2 focus:ring-slate-500 focus:ring-opacity-50 transition duration-150 ease-in-out"
                >
                  Annuler Modification
@@ -203,3 +262,4 @@ const NoteForm: React.FC<NoteFormProps> = ({ onSave, currentNote, onClearCurrent
 };
 
 export default NoteForm;
+    

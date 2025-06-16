@@ -12,6 +12,9 @@ export default defineConfig(({ mode }) => {
         alias: {
           '@': path.resolve(__dirname, '.'),
         }
+      },
+      server: {
+        allowedHosts: ['audit-de-code-github-1.onrender.com']
       }
     };
 });
