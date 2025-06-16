@@ -1,0 +1,5 @@
+
+{
+  "name": "GitHub Code Auditor",
+  "description": "An application to take notes on code performance and security, analyze code snippets with Gemini, and associate them with GitHub repositories."
+}
