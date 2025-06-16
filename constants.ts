@@ -30,10 +30,11 @@ Pour le dépôt GitHub suivant : {{REPO_URL}}
       - Organisation du code (ex: séparation des responsabilités entre contrôleurs, services, et entités).
       - Absence de code redondant ou inutilisé (ex: fonctions ou classes non utilisées).
    g. Mentionnez des **bonnes pratiques** observées (ex: structure claire, commentaires dans le code, services bien organisés, DTO bien définis, API bien structurée, code propre) ou des **points à améliorer** (ex: absence de fichier .env, code désorganisé, services non utilisés, DTO manquants, API mal documentée, code peu lisible).
-4. Attribuez une note combinée pour la performance, la sécurité, l’utilisation d’API, et le clean code sur une échelle de 0 à 10 :
+4. Attribuez une note combinée pour la performance, la sécurité, l’utilisation d’API, et le clean code sur une échelle de 0 à 20 :
    - 0 : Problèmes majeurs (ex: code non fonctionnel, failles évidentes, code illisible).
    - 5 : Projet correct mais avec des améliorations possibles.
    - 10 : Projet bien structuré, sécurisé, avec une API bien conçue, un code propre, et respectant les bases de Symfony.
+   - 20 : DTO , services, optimisaton de controlleur, 
 5. Si le dépôt est vide, manque de code pertinent, ou ne permet pas une évaluation claire, attribuez une note de -1 et expliquez pourquoi dans l’analyse.`;
 
 export const GEMINI_JSON_RESPONSE_INSTRUCTION = `
