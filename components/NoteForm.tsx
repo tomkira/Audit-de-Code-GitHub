@@ -195,7 +195,7 @@ const NoteForm: React.FC<NoteFormProps> = ({ onSave, currentNote, onClearCurrent
             type="button"
             onClick={handleGeminiRepoAnalysis}
             disabled={isLoadingGemini || !repoUrl.trim()}
-            className="w-full flex items-center justify-center px-4 py-3 bg-purple-600 hover:bg-purple-700 text-white font-semibold rounded-md shadow-md focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-opacity-50 transition duration-150 ease-in-out disabled:opacity-50 disabled:cursor-not-allowed"
+            className="flex items-center justify-center px-3 py-1 text-sm bg-purple-600 hover:bg-purple-700 text-white font-semibold rounded-md shadow-md focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-opacity-50 transition duration-150 ease-in-out disabled:opacity-50 disabled:cursor-not-allowed"
             aria-label="Analyser le dépôt avec Gemini"
         >
             {isLoadingGemini ? <LoadingSpinner /> : <SparklesIcon className="mr-2" />}
